@@ -6,20 +6,15 @@
  * - Shows completed green solid boxes
  */
 import React, { useState, useRef, useEffect } from "react";
-import { start } from "repl";
-
-type Box = {
-  startX: number;
-  startY: number;
-  endX: number;
-  endY: number;
-};
+import { Box } from "../types";
 
 interface CanvasProps {
   imageUrl: string | null;
+  annotations: Box[];
+  setAnnotations: ( boxes: Box[] ) => void;
 }
 
-function Canvas({ imageUrl }: CanvasProps) {
+function Canvas({ imageUrl,annotations,setAnnotations }: CanvasProps) {
   //Get the canvas element
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Variables
@@ -30,7 +25,6 @@ function Canvas({ imageUrl }: CanvasProps) {
     endX: 0,
     endY: 0,
   });
-  const [annotations, setAnnotations] = useState<Box[]>([]);
 
   //Mouse event functions
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
