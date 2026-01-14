@@ -12,11 +12,16 @@ import { generateRandomColor } from "../types";
 interface CanvasProps {
   imageUrl: string | null;
   annotations: Box[];
-  setAnnotations: ( boxes: Box[] ) => void;
-  onDelete: ( index: number ) => void;
+  setAnnotations: (boxes: Box[]) => void;
+  onDelete: (index: number) => void;
 }
 
-function Canvas({ imageUrl, annotations, setAnnotations,onDelete }: CanvasProps) {
+function Canvas({
+  imageUrl,
+  annotations,
+  setAnnotations,
+  onDelete,
+}: CanvasProps) {
   //Get the canvas element
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Variables
@@ -27,7 +32,7 @@ function Canvas({ imageUrl, annotations, setAnnotations,onDelete }: CanvasProps)
     endX: 0,
     endY: 0,
     label: "",
-    color: ""
+    color: "",
   });
   const [showLabelInput, setShowLabelInput] = useState(false);
   const [labelInputPosition, setLabelInputPosition] = useState({ x: 0, y: 0 });
@@ -139,7 +144,7 @@ function Canvas({ imageUrl, annotations, setAnnotations,onDelete }: CanvasProps)
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       //Draw all finished annotation boxes
-      annotations.forEach((box,index) => {
+      annotations.forEach((box, index) => {
         //Calculate width and height
         const width = box.endX - box.startX;
         const height = box.endY - box.startY;
@@ -173,24 +178,21 @@ function Canvas({ imageUrl, annotations, setAnnotations,onDelete }: CanvasProps)
 
     //Load image
     img.src = imageUrl;
-  }, [ imageUrl, annotations, currentBox, isDrawing,selectedBoxIndex ] );
-  
+  }, [imageUrl, annotations, currentBox, isDrawing, selectedBoxIndex]);
 
-  useEffect( () =>
-  {
-    const handleKeyDown = ( e: KeyboardEvent ) =>
-    {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       //Delete
-      if ( (e.key === "Delete" || e.key === "Backspace") && selectedBoxIndex !== -1 )
-      {
-        onDelete( selectedBoxIndex );
-        setSelectedBoxIndex( -1 );
-        
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        selectedBoxIndex !== -1
+      ) {
+        onDelete(selectedBoxIndex);
+        setSelectedBoxIndex(-1);
       }
       //Esc
-      if ( e.key === "Escape" && isDrawing )
-      {
-        setIsDrawing( false );
+      if (e.key === "Escape" && isDrawing) {
+        setIsDrawing(false);
         setCurrentBox({
           startX: 0,
           startY: 0,
@@ -201,12 +203,9 @@ function Canvas({ imageUrl, annotations, setAnnotations,onDelete }: CanvasProps)
         });
       }
     };
-    window.addEventListener( "keydown", handleKeyDown );
-    return () => window.removeEventListener( "keydown", handleKeyDown );
-
-
-  }, [ selectedBoxIndex, isDrawing, onDelete ] );
-
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedBoxIndex, isDrawing, onDelete]);
 
   //Return content
   return (

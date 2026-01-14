@@ -1,15 +1,37 @@
-import { useEffect } from "react";
-import { useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import Canvas from "./components/Canvas";
 import AnnotationList from "./components/AnnotationList";
 import { useHistory } from "./hooks/useHistory";
+import { ImageData, Box } from "./types";
 
 function App() {
-  const [fileName, setFileName] = useState<string>("");
+  const [images, setImages] = useState<ImageData[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(-1);
 
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const currentImage =
+    currentImageIndex >= 0 ? images[currentImageIndex] : null;
+
+  const currentAnnotations = useMemo(
+    () => currentImage?.annotations || [],
+    [currentImage]
+  );
+  const updateCurrentAnnotations = useCallback(
+    (newAnnotations: Box[]) => {
+      if (currentImageIndex === -1) return;
+
+      setImages((prevImages) => {
+        const newImages = [...prevImages];
+        newImages[currentImageIndex] = {
+          ...newImages[currentImageIndex],
+          annotations: newAnnotations,
+        };
+        return newImages;
+      });
+    },
+    [currentImageIndex]
+  );
 
   const {
     state: annotations,
@@ -18,13 +40,46 @@ function App() {
     redo,
     canUndo,
     canRedo,
-  } = useHistory([]);
+    reset,
+  } = useHistory(currentAnnotations);
+
+  useEffect(() => {
+    reset(currentAnnotations);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentImageIndex, reset]);
+
+  useEffect(() => {
+    if (currentImageIndex !== -1 && annotations !== currentAnnotations) {
+      updateCurrentAnnotations(annotations);
+    }
+  }, [
+    annotations,
+    currentAnnotations,
+    currentImageIndex,
+    updateCurrentAnnotations,
+  ]);
+
+  const handleAddImage = (url: string, fileName: string) => {
+    const newImage: ImageData = {
+      id: Date.now().toString(),
+      url: url,
+      fileName: fileName,
+      annotations: [],
+    };
+    setImages([...images, newImage]);
+    setCurrentImageIndex(images.length);
+  };
+
+  const handleSelectImage = (index: number) => {
+    setCurrentImageIndex(index);
+  };
+
   const handleDelete = (index: number) => {
     setAnnotations(annotations.filter((box, i) => i !== index));
   };
 
   const handleExport = () => {
-    if (!imageUrl) return;
+    if (!currentImage) return;
 
     const annotationsData = annotations.map((box, index) => ({
       id: index + 1,
@@ -37,7 +92,7 @@ function App() {
 
     const exportData = {
       image: {
-        fileName: fileName || "image.jpg",
+        fileName: currentImage.fileName || "image.jpg",
         width: 800,
         height: 600,
       },
@@ -94,16 +149,19 @@ function App() {
   return (
     <div className="h-screen flex flex-col">
       <Header
-        onImageUpload={setImageUrl}
         onExport={handleExport}
-        hasImage={imageUrl !== null}
+        hasImage={currentImage !== null}
         hasAnnotations={annotations.length > 0}
-        onFileNameChange={setFileName}
       />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        <Sidebar
+          images={images}
+          currentImageIndex={currentImageIndex}
+          onAddImage={handleAddImage}
+          onSelectImage={handleSelectImage}
+        />
         <Canvas
-          imageUrl={imageUrl}
+          imageUrl={currentImage?.url || null}
           annotations={annotations}
           setAnnotations={setAnnotations}
           onDelete={handleDelete}

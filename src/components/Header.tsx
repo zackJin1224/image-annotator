@@ -5,34 +5,13 @@ onSubmit: React.FormEvent<HTMLFormElement>
  */
 import React from "react";
 
-interface HeaderProps
-{
-  onImageUpload: ( url: string ) => void;
+interface HeaderProps {
   onExport: () => void;
   hasImage: boolean;
   hasAnnotations: boolean;
-  onFileNameChange: ( name: string ) => void;
 }
 
-function Header ( { onFileNameChange,onImageUpload,onExport,hasImage,hasAnnotations }: HeaderProps )
-{
-  const handleFileChange = ( event: React.ChangeEvent<HTMLInputElement> ) =>
-  {
-    const file = event.target.files?.[ 0 ];
-    if ( file )
-    {
-      const reader = new FileReader();
-      reader.onload = ( e ) =>
-      {
-        const url = e.target?.result as string;
-        onImageUpload( url );
-        onFileNameChange( file.name );
-      };
-      reader.readAsDataURL( file );
-    }
-  };
-
-  
+function Header({ onExport, hasImage, hasAnnotations }: HeaderProps) {
   return (
     <header className="bg-gray-800 text-white p-4">
       <div className="relative flex items-center justify-center">
@@ -46,20 +25,6 @@ function Header ( { onFileNameChange,onImageUpload,onExport,hasImage,hasAnnotati
           >
             Export JSON
           </button>
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            id="file-upload"
-            className="hidden"
-          />
-          <label
-            htmlFor="file-upload"
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded cursor-pointer inline-block"
-          >
-            Upload Image
-          </label>
         </div>
       </div>
     </header>
