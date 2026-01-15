@@ -94,4 +94,4 @@ function AnnotationList({
     </div>
   );
 }
-export default AnnotationList;
+export default React.memo(AnnotationList);

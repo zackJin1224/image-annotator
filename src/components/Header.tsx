@@ -15,7 +15,7 @@ function Header({ onExport, hasImage, hasAnnotations }: HeaderProps) {
   return (
     <header className="bg-gray-800 text-white p-4">
       <div className="relative flex items-center justify-center">
-        <h1 className="text-2xl font-bold">Image Annotation Tool</h1>
+        <h1 className="text-2xl font-bold">Image Annotator</h1>
 
         <div className="absolute right-0 flex gap-4">
           <button
@@ -31,4 +31,4 @@ function Header({ onExport, hasImage, hasAnnotations }: HeaderProps) {
   );
 }
 
-export default Header;
+export default React.memo(Header);
