@@ -11,10 +11,12 @@ function AnnotationPage() {
     getCurrentImage,
     getAnnotations,
     addImage,
+    deleteImage,
     selectImage,
     setAnnotations,
     deleteAnnotation,
     updateLabel,
+    exportJSON,
   } = useAnnotationStore();
 
   
@@ -30,13 +32,25 @@ function AnnotationPage() {
   ]);
   const handleUpdateLabel = useCallback(updateLabel, [updateLabel]);
 
+  const [shouldThrowError, setShouldThrowError] = React.useState(false);
+
+  if (shouldThrowError) {
+    throw new Error("This is a test error!");
+  }
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-1 overflow-hidden bg-gray-50 border-t border-gray-200">
+      <button
+        onClick={() => setShouldThrowError(true)}
+        className="absolute bottom-4 left-4 bg-red-500 text-white px-4 py-2 rounded z-50"
+      >
+        Test Error Boundary
+      </button>
       <Sidebar
         images={images}
         currentImageIndex={currentImageIndex}
         onAddImage={handleAddImage}
         onSelectImage={handleSelectImage}
+        onDeleteImage={deleteImage}
       />
       <Canvas
         imageUrl={currentImage?.url || null}
@@ -48,6 +62,8 @@ function AnnotationPage() {
         annotations={annotations}
         onDelete={handleDeleteAnnotation}
         onUpdateLabel={handleUpdateLabel}
+        onExport={exportJSON}
+        hasAnnotations={annotations.length > 0}
       />
     </div>
   );

@@ -209,7 +209,7 @@ function Canvas({
 
   //Return content
   return (
-    <div className="flex-1 bg-white p-6 flex items-center justify-center overflow-auto">
+    <div className="flex-1 bg-white p-6 flex items-center justify-center overflow-auto border-x border-gray-200">
       {imageUrl ? (
         <>
           <canvas
@@ -266,4 +266,4 @@ function Canvas({
   );
 }
 
-export default React.memo(Canvas);
+export default Canvas;
