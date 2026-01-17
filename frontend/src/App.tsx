@@ -1,10 +1,7 @@
 import React from "react";
 import { Toaster } from "react-hot-toast";
-import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import AnnotationPage from "./pages/AnnotationPage";
-import ProjectsPage from "./pages/ProjectPage";
-import SettingsPage from "./pages/SettingsPage";
-import StatsPage from "./pages/StatsPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 function App() {
@@ -12,8 +9,17 @@ function App() {
     <BrowserRouter>
       <div className="h-screen flex flex-col app-background">
         <header className="glass-effect border-b border-gray-200">
-          <div className="relative flex items-center justify-center px-6 py-3">
-            <div className="flex items-center gap-3">
+          <div className="relative flex items-center px-6 py-4">
+            <div className="absolute left-6">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-200">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-sm font-medium text-green-700">
+                  Auto-save enabled
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 mx-auto">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                 <span className="text-xl">🎨</span>
               </div>
@@ -22,60 +28,10 @@ function App() {
               </h1>
             </div>
           </div>
-
-          <nav className="border-t border-white/10">
-            <div className="flex justify-center gap-8 px-6 py-2">
-              <NavLink
-                to="/"
-                className={({ isActive }) =>
-                  isActive
-                    ? "text-purple-600 font-semibold border-b-2 border-purple-600 pb-1 transition-all"
-                    : "text-gray-600 hover:text-purple-600 font-medium transition-colors"
-                }
-              >
-                📋 Annotator
-              </NavLink>
-              <NavLink
-                to="/projects"
-                className={({ isActive }) =>
-                  isActive
-                    ? "text-purple-600 font-semibold border-b-2 border-purple-600 pb-1 transition-all"
-                    : "text-gray-600 hover:text-purple-600 font-medium transition-colors"
-                }
-              >
-                📁 Projects
-              </NavLink>
-              <NavLink
-                to="/stats"
-                className={({ isActive }) =>
-                  isActive
-                    ? "text-purple-600 font-semibold border-b-2 border-purple-600 pb-1 transition-all"
-                    : "text-gray-600 hover:text-purple-600 font-medium transition-colors"
-                }
-              >
-                📊 Data
-              </NavLink>
-              <NavLink
-                to="/settings"
-                className={({ isActive }) =>
-                  isActive
-                    ? "text-purple-600 font-semibold border-b-2 border-purple-600 pb-1 transition-all"
-                    : "text-gray-600 hover:text-purple-600 font-medium transition-colors"
-                }
-              >
-                ⚙️ Settings
-              </NavLink>
-            </div>
-          </nav>
         </header>
 
         <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<AnnotationPage />} />
-            <Route path="/projects" element={<ProjectsPage />} />
-            <Route path="/stats" element={<StatsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
+          <AnnotationPage />
         </ErrorBoundary>
 
         <Toaster
@@ -117,3 +73,4 @@ function App() {
 }
 
 export default App;
+

@@ -1,20 +1,24 @@
 import { create } from "zustand";
-import { ImageData, Box } from "../types";
+import { ImageData, Box, generateRandomColor } from "../types";
 import toast from "react-hot-toast";
+import { apiService } from "../services/api";
 
 interface AnnotationStore {
   images: ImageData[];
   currentImageIndex: number;
   imageHistories: Map<string, { history: Box[][]; historyIndex: number }>;
+  isLoading: boolean;
 
   getCurrentImage: () => ImageData | null;
   getAnnotations: () => Box[];
 
-  addImage: (url: string, fileName: string) => void;
+  loadImages: () => Promise<void>;
+  addImage: (file: File) => Promise<void>;
   selectImage: (index: number) => void;
-  deleteImage: (index: number) => void;
+  deleteImage: (index: number) => Promise<void>;
   setAnnotations: (annotations: Box[]) => void;
-  deleteAnnotation: (index: number) => void;
+  saveAnnotations: () => Promise<void>;
+  deleteAnnotation: (index: number) => Promise<void>;
   updateLabel: (index: number, newLabel: string) => void;
 
   undo: () => void;
@@ -29,6 +33,7 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   images: [],
   currentImageIndex: -1,
   imageHistories: new Map(),
+  isLoading: false,
 
   getCurrentImage: () => {
     const state = get();
@@ -46,58 +51,146 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
     return currentImage?.annotations || [];
   },
 
-  addImage: (url, fileName) => {
-    set((state) => {
+  loadImages: async () => {
+    set({ isLoading: true });
+    try {
+      const serverImages = await apiService.getAllImages();
+
+      const images: ImageData[] = serverImages.map((img) => ({
+        id: img.id,
+        url: img.url,
+        fileName: img.file_name,
+        annotations: [],
+      }));
+
+      const newHistories = new Map();
+      images.forEach((img) => {
+        newHistories.set(img.id, {
+          history: [[]],
+          historyIndex: 0,
+        });
+      });
+
+      set({
+        images,
+        currentImageIndex: images.length > 0 ? 0 : -1,
+        imageHistories: newHistories,
+        isLoading: false,
+      });
+    } catch (error) {
+      toast.error("Failed to load images");
+      set({ isLoading: false });
+    }
+  },
+
+  addImage: async (file: File) => {
+    set({ isLoading: true });
+    try {
+      const serverImage = await apiService.uploadImage(file);
+
       const newImage: ImageData = {
-        id: Date.now().toString(),
-        url,
-        fileName,
+        id: serverImage.id,
+        url: serverImage.url,
+        fileName: serverImage.file_name,
         annotations: [],
       };
 
-      const newHistories = new Map(state.imageHistories);
-      newHistories.set(newImage.id, {
-        history: [[]],
-        historyIndex: 0,
+      set((state) => {
+        const newHistories = new Map(state.imageHistories);
+        newHistories.set(newImage.id, {
+          history: [[]],
+          historyIndex: 0,
+        });
+
+        toast.success(`Added: ${file.name}`);
+        return {
+          images: [...state.images, newImage],
+          currentImageIndex: state.images.length,
+          imageHistories: newHistories,
+          isLoading: false,
+        };
       });
-
-      toast.success(`Added: ${fileName}`);
-      return {
-        images: [...state.images, newImage],
-        currentImageIndex: state.images.length,
-        imageHistories: newHistories,
-      };
-    });
+    } catch (error) {
+      toast.error("Failed to upload image");
+      set({ isLoading: false });
+    }
   },
 
-  selectImage: (index) => {
-    set({ currentImageIndex: index });
+  selectImage: async (index) => {
+    const state = get();
+    const image = state.images[index];
+
+    if (!image) return;
+
+    try {
+      const serverImage = await apiService.getImageById(image.id);
+
+      const annotations: Box[] = serverImage.annotations.map((ann) => ({
+        startX: ann.start_x,
+        startY: ann.start_y,
+        endX: ann.end_x,
+        endY: ann.end_y,
+        label: ann.label,
+        color: generateRandomColor(),
+      }));
+
+      set((state) => {
+        const newImages = [...state.images];
+        newImages[index] = {
+          ...newImages[index],
+          annotations,
+        };
+
+        const newHistories = new Map(state.imageHistories);
+        newHistories.set(image.id, {
+          history: [annotations],
+          historyIndex: 0,
+        });
+
+        return {
+          images: newImages,
+          currentImageIndex: index,
+          imageHistories: newHistories,
+        };
+      });
+    } catch (error) {
+      toast.error("Failed to load annotations");
+      set({ currentImageIndex: index });
+    }
   },
 
-  deleteImage: (index) => {
-    set((state) => {
-      const deletedImage = state.images[index];
-      const newImages = state.images.filter((_, i) => i !== index);
-      let newIndex = state.currentImageIndex;
+  deleteImage: async (index) => {
+    const state = get();
+    const deletedImage = state.images[index];
 
-      if (index === state.currentImageIndex) {
-        newIndex =
-          newImages.length > 0 ? Math.min(index, newImages.length - 1) : -1;
-      } else if (index < state.currentImageIndex) {
-        newIndex = state.currentImageIndex - 1;
-      }
+    try {
+      await apiService.deleteImage(deletedImage.id);
 
-      const newHistories = new Map(state.imageHistories);
-      newHistories.delete(deletedImage.id);
+      set((state) => {
+        const newImages = state.images.filter((_, i) => i !== index);
+        let newIndex = state.currentImageIndex;
 
-      toast.success(`Deleted: ${deletedImage.fileName}`);
+        if (index === state.currentImageIndex) {
+          newIndex =
+            newImages.length > 0 ? Math.min(index, newImages.length - 1) : -1;
+        } else if (index < state.currentImageIndex) {
+          newIndex = state.currentImageIndex - 1;
+        }
 
-      return {
-        images: newImages,
-        currentImageIndex: newIndex,
-        imageHistories: newHistories,
-      };
-    });
+        const newHistories = new Map(state.imageHistories);
+        newHistories.delete(deletedImage.id);
+
+        toast.success(`Deleted: ${deletedImage.fileName}`);
+
+        return {
+          images: newImages,
+          currentImageIndex: newIndex,
+          imageHistories: newHistories,
+        };
+      });
+    } catch (error) {
+      toast.error("Failed to delete image");
+    }
   },
 
   setAnnotations: (annotations) => {
@@ -136,14 +229,39 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
     });
   },
 
-  deleteAnnotation: (index) => {
-    set((state) => {
-      if (state.currentImageIndex === -1) return state;
+  saveAnnotations: async () => {
+    const state = get();
+    const currentImage = state.getCurrentImage();
+    if (!currentImage) return;
 
+    const annotations = state.getAnnotations();
+
+    try {
+      const annotationsData = annotations.map((box) => ({
+        startX: box.startX,
+        startY: box.startY,
+        endX: box.endX,
+        endY: box.endY,
+        label: box.label,
+      }));
+
+      await apiService.replaceAllAnnotations(currentImage.id, annotationsData);
+    } catch (error) {
+      console.error("Failed to save annotations:", error);
+    }
+  },
+
+  deleteAnnotation: async (index) => {
+    const state = get();
+    if (state.currentImageIndex === -1) return;
+
+    const currentImage = state.images[state.currentImageIndex];
+    const annotations = currentImage.annotations || [];
+    const boxLabel = annotations[index]?.label || "Box";
+
+    set((state) => {
       const currentImage = state.images[state.currentImageIndex];
       const annotations = currentImage.annotations || [];
-      const imageName = currentImage.fileName || "image";
-      const boxLabel = annotations[index]?.label || "Box";
       const imageId = currentImage.id;
 
       const currentHistory = state.imageHistories.get(imageId) || {
@@ -170,13 +288,15 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         historyIndex: currentHistory.historyIndex + 1,
       });
 
-      toast.success(`${imageName}: ${boxLabel} #${index + 1} deleted`);
+      toast.success(`${boxLabel} #${index + 1} deleted`);
 
       return {
         images: newImages,
         imageHistories: newHistories,
       };
     });
+
+    await get().saveAnnotations();
   },
 
   updateLabel: (index, newLabel) => {

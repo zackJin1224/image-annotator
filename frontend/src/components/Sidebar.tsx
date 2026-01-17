@@ -4,9 +4,9 @@ import { ImageData } from "../types";
 interface SidebarProps {
   images: ImageData[];
   currentImageIndex: number;
-  onAddImage: (url: string, fileName: string) => void;
+  onAddImage: (file: File) => Promise<void>;
   onSelectImage: (index: number) => void;
-  onDeleteImage: (index: number) => void;
+  onDeleteImage: (index: number) => Promise<void>;
 }
 
 interface DeleteModalProps {
@@ -112,14 +112,9 @@ function Sidebar({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      onAddImage(reader.result as string, file.name);
-      e.target.value = "";
-    };
-    reader.readAsDataURL(file);
+    onAddImage(file);
+    e.target.value = "";
   };
-
   const handleDeleteClick = (
     index: number,
     fileName: string,

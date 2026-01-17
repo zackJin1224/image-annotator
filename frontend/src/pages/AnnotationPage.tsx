@@ -3,6 +3,7 @@ import { useAnnotationStore } from "../store/useAnnotationStore";
 import Sidebar from "../components/Sidebar";
 import Canvas from "../components/Canvas";
 import AnnotationList from "../components/AnnotationList";
+import { Box } from "../types";
 
 function AnnotationPage() {
   const {
@@ -14,16 +15,22 @@ function AnnotationPage() {
     deleteImage,
     selectImage,
     setAnnotations,
+    saveAnnotations,
     deleteAnnotation,
     updateLabel,
     exportJSON,
     undo,
     redo,
+    loadImages,
   } = useAnnotationStore();
 
   const currentImage = getCurrentImage();
   const annotations = getAnnotations();
 
+  useEffect(() => {
+    loadImages();
+  }, [] );
+  
   useEffect(() => {
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       const isUndo =
@@ -57,9 +64,17 @@ function AnnotationPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [undo, redo]);
 
-  const handleAddImage = useCallback(addImage, [addImage]);
+  const handleAddImage = async (file: File) => {
+  await addImage(file);
+};
   const handleSelectImage = useCallback(selectImage, [selectImage]);
-  const handleSetAnnotations = useCallback(setAnnotations, [setAnnotations]);
+  const handleSetAnnotations = useCallback(
+    async (annotations: Box[]) => {
+      setAnnotations(annotations);
+      await saveAnnotations();
+    },
+    [setAnnotations, saveAnnotations]
+  );
   const handleDeleteAnnotation = useCallback(deleteAnnotation, [
     deleteAnnotation,
   ]);
