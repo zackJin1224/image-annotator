@@ -3,18 +3,13 @@ import { ImageData, Box } from "../types";
 import toast from "react-hot-toast";
 
 interface AnnotationStore {
-  // States
   images: ImageData[];
   currentImageIndex: number;
-  
-  // History - 每张图片独立的 history
-  imageHistories: Map<string, { history: Box[][], historyIndex: number }>;
+  imageHistories: Map<string, { history: Box[][]; historyIndex: number }>;
 
-  // Calculate properties
   getCurrentImage: () => ImageData | null;
   getAnnotations: () => Box[];
 
-  // Actions
   addImage: (url: string, fileName: string) => void;
   selectImage: (index: number) => void;
   deleteImage: (index: number) => void;
@@ -22,18 +17,15 @@ interface AnnotationStore {
   deleteAnnotation: (index: number) => void;
   updateLabel: (index: number, newLabel: string) => void;
 
-  // Undo and redo
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
 
-  // Export
   exportJSON: () => void;
 }
 
 export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
-  // Initial states
   images: [],
   currentImageIndex: -1,
   imageHistories: new Map(),
@@ -54,7 +46,6 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
     return currentImage?.annotations || [];
   },
 
-  // Actions
   addImage: (url, fileName) => {
     set((state) => {
       const newImage: ImageData = {
@@ -63,14 +54,13 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
         fileName,
         annotations: [],
       };
-      
-      // 为新图片初始化 history
+
       const newHistories = new Map(state.imageHistories);
       newHistories.set(newImage.id, {
         history: [[]],
         historyIndex: 0,
       });
-      
+
       toast.success(`Added: ${fileName}`);
       return {
         images: [...state.images, newImage],
@@ -91,12 +81,12 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       let newIndex = state.currentImageIndex;
 
       if (index === state.currentImageIndex) {
-        newIndex = newImages.length > 0 ? Math.min(index, newImages.length - 1) : -1;
+        newIndex =
+          newImages.length > 0 ? Math.min(index, newImages.length - 1) : -1;
       } else if (index < state.currentImageIndex) {
         newIndex = state.currentImageIndex - 1;
       }
 
-      // 删除对应的 history
       const newHistories = new Map(state.imageHistories);
       newHistories.delete(deletedImage.id);
 
@@ -117,25 +107,22 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       const currentImage = state.images[state.currentImageIndex];
       const imageId = currentImage.id;
 
-      // 获取当前图片的 history
       const currentHistory = state.imageHistories.get(imageId) || {
         history: [[]],
         historyIndex: 0,
       };
 
-      // 更新图片的 annotations
       const newImages = [...state.images];
       newImages[state.currentImageIndex] = {
         ...newImages[state.currentImageIndex],
         annotations,
       };
 
-      // 更新当前图片的 history
       const newHistory = [
         ...currentHistory.history.slice(0, currentHistory.historyIndex + 1),
         annotations,
       ];
-      
+
       const newHistories = new Map(state.imageHistories);
       newHistories.set(imageId, {
         history: newHistory,
@@ -150,14 +137,46 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
   },
 
   deleteAnnotation: (index) => {
-    const state = get();
-    const currentImage = state.getCurrentImage();
-    const annotations = state.getAnnotations();
-    const imageName = currentImage?.fileName || "image";
-    const boxLabel = annotations[index]?.label || "Box";
-    const newAnnotations = annotations.filter((_, i) => i !== index);
-    toast.success(`${imageName}: ${boxLabel} #${index + 1} deleted`);
-    state.setAnnotations(newAnnotations);
+    set((state) => {
+      if (state.currentImageIndex === -1) return state;
+
+      const currentImage = state.images[state.currentImageIndex];
+      const annotations = currentImage.annotations || [];
+      const imageName = currentImage.fileName || "image";
+      const boxLabel = annotations[index]?.label || "Box";
+      const imageId = currentImage.id;
+
+      const currentHistory = state.imageHistories.get(imageId) || {
+        history: [[]],
+        historyIndex: 0,
+      };
+
+      const newAnnotations = annotations.filter((_, i) => i !== index);
+
+      const newImages = [...state.images];
+      newImages[state.currentImageIndex] = {
+        ...newImages[state.currentImageIndex],
+        annotations: newAnnotations,
+      };
+
+      const newHistory = [
+        ...currentHistory.history.slice(0, currentHistory.historyIndex + 1),
+        newAnnotations,
+      ];
+
+      const newHistories = new Map(state.imageHistories);
+      newHistories.set(imageId, {
+        history: newHistory,
+        historyIndex: currentHistory.historyIndex + 1,
+      });
+
+      toast.success(`${imageName}: ${boxLabel} #${index + 1} deleted`);
+
+      return {
+        images: newImages,
+        imageHistories: newHistories,
+      };
+    });
   },
 
   updateLabel: (index, newLabel) => {
@@ -172,7 +191,7 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
     const state = get();
     const currentImage = state.getCurrentImage();
     if (!currentImage) return false;
-    
+
     const imageHistory = state.imageHistories.get(currentImage.id);
     return imageHistory ? imageHistory.historyIndex > 0 : false;
   },
@@ -181,10 +200,10 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
     const state = get();
     const currentImage = state.getCurrentImage();
     if (!currentImage) return false;
-    
+
     const imageHistory = state.imageHistories.get(currentImage.id);
-    return imageHistory 
-      ? imageHistory.historyIndex < imageHistory.history.length - 1 
+    return imageHistory
+      ? imageHistory.historyIndex < imageHistory.history.length - 1
       : false;
   },
 
@@ -199,21 +218,17 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       const newIndex = imageHistory.historyIndex - 1;
       const annotations = imageHistory.history[newIndex];
 
-      // 更新图片的 annotations
       const newImages = [...state.images];
       newImages[state.currentImageIndex] = {
         ...newImages[state.currentImageIndex],
         annotations,
       };
 
-      // 更新 history index
       const newHistories = new Map(state.imageHistories);
       newHistories.set(currentImage.id, {
         ...imageHistory,
         historyIndex: newIndex,
       });
-
-      toast.success("Undo");
 
       return {
         images: newImages,
@@ -228,28 +243,27 @@ export const useAnnotationStore = create<AnnotationStore>((set, get) => ({
       if (!currentImage) return state;
 
       const imageHistory = state.imageHistories.get(currentImage.id);
-      if (!imageHistory || imageHistory.historyIndex >= imageHistory.history.length - 1) {
+      if (
+        !imageHistory ||
+        imageHistory.historyIndex >= imageHistory.history.length - 1
+      ) {
         return state;
       }
 
       const newIndex = imageHistory.historyIndex + 1;
       const annotations = imageHistory.history[newIndex];
 
-      // 更新图片的 annotations
       const newImages = [...state.images];
       newImages[state.currentImageIndex] = {
         ...newImages[state.currentImageIndex],
         annotations,
       };
 
-      // 更新 history index
       const newHistories = new Map(state.imageHistories);
       newHistories.set(currentImage.id, {
         ...imageHistory,
         historyIndex: newIndex,
       });
-
-      toast.success("Redo");
 
       return {
         images: newImages,

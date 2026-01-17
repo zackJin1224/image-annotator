@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useAnnotationStore } from "../store/useAnnotationStore";
 import Sidebar from "../components/Sidebar";
 import Canvas from "../components/Canvas";
@@ -17,13 +17,46 @@ function AnnotationPage() {
     deleteAnnotation,
     updateLabel,
     exportJSON,
+    undo,
+    redo,
   } = useAnnotationStore();
 
-  
   const currentImage = getCurrentImage();
   const annotations = getAnnotations();
 
-  
+  useEffect(() => {
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      const isUndo =
+        (event.metaKey || event.ctrlKey) &&
+        (event.key === "z" || event.key === "Z") &&
+        !event.shiftKey;
+
+      const isRedo =
+        (event.metaKey || event.ctrlKey) &&
+        (event.key === "z" || event.key === "Z") &&
+        event.shiftKey;
+
+      const isRedoAlt =
+        (event.metaKey || event.ctrlKey) &&
+        (event.key === "y" || event.key === "Y");
+
+      if (isUndo) {
+        event.preventDefault();
+        undo();
+        return;
+      }
+
+      if (isRedo || isRedoAlt) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
+
   const handleAddImage = useCallback(addImage, [addImage]);
   const handleSelectImage = useCallback(selectImage, [selectImage]);
   const handleSetAnnotations = useCallback(setAnnotations, [setAnnotations]);
@@ -37,6 +70,7 @@ function AnnotationPage() {
   if (shouldThrowError) {
     throw new Error("This is a test error!");
   }
+
   return (
     <div className="flex flex-1 overflow-hidden bg-gray-50 border-t border-gray-200">
       <button
@@ -45,6 +79,7 @@ function AnnotationPage() {
       >
         Test Error Boundary
       </button>
+
       <Sidebar
         images={images}
         currentImageIndex={currentImageIndex}
