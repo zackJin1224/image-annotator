@@ -28,7 +28,6 @@ function AnnotationPage() {
 
   const currentImage = getCurrentImage();
   const annotations = getAnnotations();
-  const [isAIProcessing, setIsAIProcessing] = React.useState(false);
 
   const handleAIAnnotate = async () => {
     const currentImage = getCurrentImage();
@@ -37,7 +36,6 @@ function AnnotationPage() {
       return;
     }
 
-    setIsAIProcessing(true);
     toast.loading("AI is analyzing the image...", { id: "ai-loading" });
 
     try {
@@ -62,12 +60,12 @@ function AnnotationPage() {
       console.error("AI annotation failed:", error);
       toast.error("AI annotation failed", { id: "ai-loading" });
     } finally {
-      setIsAIProcessing(false);
     }
   };
 
   useEffect(() => {
     loadImages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
