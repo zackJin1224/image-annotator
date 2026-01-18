@@ -12,11 +12,14 @@ class ImageController {
     try {
       const images = await Image.findAll();
 
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? process.env.RENDER_EXTERNAL_URL || `https://${req.get("host")}`
+          : `http://localhost:${process.env.PORT || 5000}`;
+
       const imagesWithUrls = images.map((img) => ({
         ...img,
-        url: `http://localhost:${
-          process.env.PORT || 5000
-        }/uploads/${path.basename(img.file_path)}`,
+        url: `${baseUrl}/uploads/${path.basename(img.file_path)}`,
       }));
 
       res.json({
@@ -44,9 +47,12 @@ class ImageController {
         });
       }
 
-      image.url = `http://localhost:${
-        process.env.PORT || 5000
-      }/uploads/${path.basename(image.file_path)}`;
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? process.env.RENDER_EXTERNAL_URL || `https://${req.get("host")}`
+          : `http://localhost:${process.env.PORT || 5000}`;
+
+      image.url = `${baseUrl}/uploads/${path.basename(image.file_path)}`;
 
       res.json({
         success: true,
@@ -82,13 +88,16 @@ class ImageController {
         height: metadata.height,
       });
 
+      const baseUrl =
+        process.env.NODE_ENV === "production"
+          ? process.env.RENDER_EXTERNAL_URL || `https://${req.get("host")}`
+          : `http://localhost:${process.env.PORT || 5000}`;
+
       res.status(201).json({
         success: true,
         data: {
           ...image,
-          url: `http://localhost:${
-            process.env.PORT || 5000
-          }/uploads/${filename}`,
+          url: `${baseUrl}/uploads/${filename}`,
         },
       });
     } catch (error) {
