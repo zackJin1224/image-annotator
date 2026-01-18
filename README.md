@@ -83,6 +83,11 @@ _Confirmation dialog prevents accidental deletion of images and annotations_
 ![Error Boundary](screenshots/error-test.png)
 _Error boundary catches unexpected errors and provides graceful fallback UI_
 
+### JSON Export
+![JSON Export](screenshots/export-json.png)
+
+*Export annotations in COCO format for machine learning and data analysis*
+
 ---
 
 ## 🛠️ Tech Stack
