@@ -1,4 +1,6 @@
-const API_BASE_URL = "http://localhost:5001/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/api`
+  : "http://localhost:5001/api";
 
 export interface ImageResponse {
   id: string;
@@ -122,7 +124,7 @@ class ApiService {
     const data = await response.json();
     return data.data;
   }
-  
+
   async replaceAllAnnotations(
     imageId: string,
     annotations: Array<{

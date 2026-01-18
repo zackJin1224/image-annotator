@@ -18,7 +18,13 @@ const PORT = process.env.PORT || 5001;
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin:
+      process.env.NODE_ENV === "production"
+        ? [
+            "https://image-annotator.vercel.app",
+            "https://image-annotator-*.vercel.app",
+          ]
+        : "http://localhost:3000",
     credentials: true,
   })
 );
